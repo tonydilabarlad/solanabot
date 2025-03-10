@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Solana Sandwich Bot Dashboard</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment.min.js"></script>
+    <style>
+        :root {
+            --primary: #9945FF;
+            --primary-light: #B875FF;
+            --secondary: #14F195;
+            --bg-dark: #1E1E24;
+            --bg-medium: #2D2D3F;
+            --bg-light: #3D3D56;
+            --text-light: #F4F4F6;
+            --text-muted: #A0A0B0;
+            --success: #14F195;
+            --warning: #FF9A3D;
+            --danger: #FF3D6F;
+        }
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', 'Roboto', sans-serif;
+        }
+        
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-light);
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 0;
+            border-bottom: 1px solid var(--bg-light);
+            margin-bottom: 20px;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(45deg, var(--primary), var(--secondary));
+            border-radius: 8px;
+        }
+        
+        h1 {
+            font-size: 24px;
+            font-weight: 700;
+        }
+        
+        .status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background-color: var(--success);
+        }
+        
+        .status-text {
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        .dashboard {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 20px;
+        }
+        
+        .sidebar {
+            background-color: var(--bg-medium);
+            border-radius: 8px;
+            padding: 20px;
+        }
+        
+        .main {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .card {
+            background-color: var(--bg-medium);
+            border-radius: 8px;
+            padding: 20px;
+        }
+        
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        h2 {
+            font-size: 18px;
+            font-weight: 600;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 14px;
+            color: var(--text-muted);
+        }
+        
+        input, select {
+            width: 100%;
+            padding: 10px;
+            background-color: var(--bg-light);
+            border: 1px solid var(--bg-light);
+            border-radius: 4px;
+            color: var(--text-light);
+            font-size: 14px;
+        }
+        
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+        
+        button {
+            padding: 10px 15px;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }
+        
+        button:hover {
+            background-color: var(--primary-light);
+        }
+        
+        .btn-success {
+            background-color: var(--success);
+        }
+        
+        .btn-success:hover {
+            background-color: #0CD584;
+        }
+        
+        .btn-danger {
+            background-color: var(--danger);
+        }
+        
+        .btn-danger:hover {
+            background-color: #FF1A55;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .stat-card {
+            background-color: var(--bg-light);
+            border-radius: 6px;
+            padding: 15px;
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+        
+        .stat-label {
+            font-size: 14px;
+            color: var(--text-muted);
+        }
+        
+        .profit {
+            color: var(--success);
+        }
+        
+        .loss {
+            color: var(--danger);
+        }
+        
+        .chart-container {
+            height: 300px;
+            margin-bottom: 20px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid var(--bg-light);
+        }
+        
+        th {
+            font-weight: 600;
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+        
+        tr:hover {
+            background-color: var(--bg-light);
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        
+        .badge-success {
+            background-color: var(--success);
+            color: #051B10;
+        }
+        
+        .badge-warning {
+            background-color: var(--warning);
+            color: #331F00;
+        }
+        
+        .badge-danger {
+            background-color: var(--danger);
+            color: white;
+        }
+        
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+            color: var(--text-muted);
+        }
+        
+        .logs {
+            background-color: #1A1A20;
+            border-radius: 4px;
+            padding: 15px;
+            font-family: monospace;
+            height: 150px;
+            overflow-y: auto;
+            font-size: 12px;
+            line-height: 1.5;
+        }
+        
+        .log-line {
+            margin-bottom: 5px;
+        }
+        
+        .log-time {
+            color: var(--text-muted);
+            margin-right: 10px;
+        }
+        
+        .log-info {
+            color: var(--primary-light);
+        }
+        
+        .log-success {
+            color: var(--success);
+        }
+        
+        .log-error {
+            color: var(--danger);
+        }
+        
+        .actions {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+
+        @media (max-width: 1024px) {
+            .dashboard {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">
+                <div class="logo-icon"></div>
+                <h1>Solana Sandwich Bot</h1>
+            </div>
+            <div class="status">
+                <div class="status-indicator"></div>
+                <span class="status-text">Bot Running</span>
+            </div>
+        </header>
+        
+        <div class="dashboard">
+            <div class="sidebar">
+                <div class="card">
+                    <div class="card-header">
+                        <h2>Configuration</h2>
+                    </div>
+                    <form id="configForm">
+                        <div class="form-group">
+                            <label for="rpcUrl">RPC URL</label>
+                            <input type="text" id="rpcUrl" value="https://api.mainnet-beta.solana.com">
+                        </div>
+                        <div class="form-group">
+                            <label for="jitoUrl">Jito URL</label>
+                            <input type="text" id="jitoUrl" value="https://mainnet.block-engine.jito.wtf">
+                        </div>
+                        <div class="form-group">
+                            <label for="tokenAddress">Token Address</label>
+                            <input type="text" id="tokenAddress" placeholder="Enter token address" value="EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v">
+                        </div>
+                        <div class="form-group">
+                            <label for="minPurchaseThreshold">Min Purchase Threshold (SOL)</label>
+                            <input type="number" id="minPurchaseThreshold" min="0.1" step="0.1" value="1.0">
+                        </div>
+                        <div class="form-group">
+                            <label for="targetProfitPercentage">Target Profit (%)</label>
+                            <input type="number" id="targetProfitPercentage" min="0.1" step="0.1" value="0.5">
+                        </div>
+                        <div class="form-group">
+                            <label for="maxSlippagePercentage">Max Slippage (%)</label>
+                            <input type="number" id="maxSlippagePercentage" min="0.1" step="0.1" value="2.0">
+                        </div>
+                        <div class="form-group">
+                            <label for="gasMultiplier">Gas Multiplier</label>
+                            <input type="number" id="gasMultiplier" min="1.0" step="0.1" value="1.5">
+                        </div>
+                        <div class="actions">
+                            <button type="submit" class="btn-success">Save Configuration</button>
+                        </div>
+                    </form>
+                </div>
+                
+                <div class="card" style="margin-top: 20px;">
+                    <div class="card-header">
+                        <h2>Bot Control</h2>
+                    </div>
+                    <div class="actions" style="margin-top: 0;">
+                        <button id="stopBtn" class="btn-danger">Stop Bot</button>
+                        <button id="startBtn" class="btn-success">Start Bot</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="main">
+                <div class="card">
+                    <div class="card-header">
+                        <h2>Performance Overview</h2>
+                    </div>
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-value profit">+2.34 SOL</div>
+                            <div class="stat-label">Total Profit</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value">12</div>
+                            <div class="stat-label">Successful Sandwiches</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value">3</div>
+                            <div class="stat-label">Failed Attempts</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value profit">0.87%</div>
+                            <div class="stat-label">Avg. Profit %</div>
+                        </div>
+                    </div>
+                    
+                    <div class="chart-container">
+                        <canvas id="profitChart"></canvas>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <h2>Recent Transactions</h2>
+                    </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Time</th>
+                                <th>Type</th>
+                                <th>Amount</th>
+                                <th>Token</th>
+                                <th>Profit</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>10:42:15</td>
+                                <td>Sandwich</td>
+                                <td>0.8 SOL</td>
+                                <td>USDC</td>
+                                <td class="profit">+0.0065 SOL</td>
+                                <td><span class="badge badge-success">Completed</span></td>
+                            </tr>
+                            <tr>
+                                <td>10:15:32</td>
+                                <td>Sandwich</td>
+                                <td>1.2 SOL</td>
+                                <td>BONK</td>
+                                <td class="profit">+0.0112 SOL</td>
+                                <td><span class="badge badge-success">Completed</span></td>
+                            </tr>
+                            <tr>
+                                <td>09:58:10</td>
+                                <td>Sandwich</td>
+                                <td>2.1 SOL</td>
+                                <td>RAY</td>
+                                <td class="loss">-0.0032 SOL</td>
+                                <td><span class="badge badge-danger">Failed</span></td>
+                            </tr>
+                            <tr>
+                                <td>09:36:45</td>
+                                <td>Sandwich</td>
+                                <td>0.9 SOL</td>
+                                <td>USDC</td>
+                                <td class="profit">+0.0074 SOL</td>
+                                <td><span class="badge badge-success">Completed</span></td>
+                            </tr>
+                            <tr>
+                                <td>09:20:11</td>
+                                <td>Sandwich</td>
+                                <td>1.5 SOL</td>
+                                <td>BONK</td>
+                                <td class="profit">+0.0142 SOL</td>
+                                <td><span class="badge badge-success">Completed</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <h2>Activity Log</h2>
+                    </div>
+                    <div class="logs">
+                        <div class="log-line">
+                            <span class="log-time">10:42:17</span>
+                            <span class="log-success">Sandwich complete! Profit realized.</span>
+                        </div>
+                        <div class="log-line">
+                            <span class="log-time">10:42:16</span>
+                            <span class="log-info">Front-running buy successful, waiting for price impact...</span>
+                        </div>
+                        <div class="log-line">
+                            <span class="log-time">10:42:15</span>
+                            <span class="log-info">Executing sandwich strategy...</span>
+                        </div>
+                        <div class="log-line">
+                            <span class="log-time">10:42:15</span>
+                            <span class="log-info">Detected large purchase: 1.5 SOL</span>
+                        </div>
+                        <div class="log-line">
+                            <span class="log-time">10:15:34</span>
+                            <span class="log-success">Sandwich complete! Profit realized.</span>
+                        </div>
+                        <div class="log-line">
+                            <span class="log-time">10:15:33</span>
+                            <span class="log-info">Front-running buy successful, waiting for price impact...</span>
+                        </div>
+                        <div class="log-line">
+                            <span class="log-time">10:15:32</span>
+                            <span class="log-info">Executing sandwich strategy...</span>
+                        </div>
+                        <div class="log-line">
+                            <span class="log-time">10:15:32</span>
+                            <span class="log-info">Detected large purchase: 1.2 SOL</span>
+                        </div>
+                        <div class="log-line">
+                            <span class="log-time">09:58:13</span>
+                            <span class="log-error">Back-running sell transaction failed: Slippage tolerance exceeded</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Initialize Chart
+        const profitChartCtx = document.getElementById('profitChart').getContext('2d');
+        const profitChart = new Chart(profitChartCtx, {
+            type: 'line',
+            data: {
+                labels: ['08:00', '09:00', '10:00', '11:00'],
+                datasets: [{
+                    label: 'Cumulative Profit (SOL)',
+                    data: [0, 0.85, 1.65, 2.34],
+                    backgroundColor: 'rgba(20, 241, 149, 0.2)',
+                    borderColor: 'rgba(20, 241, 149, 1)',
+                    borderWidth: 2,
+                    tension: 0.4,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.05)'
+                        },
+                        ticks: {
+                            color: '#A0A0B0'
+                        }
+                    },
+                    x: {
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.05)'
+                        },
+                        ticks: {
+                            color: '#A0A0B0'
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Form submission
+        document.getElementById('configForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            // In a real application, this would send the configuration to your backend
+            alert('Configuration saved!');
+        });
+        
+        // Bot control buttons
+        document.getElementById('startBtn').addEventListener('click', function() {
+            document.querySelector('.status-indicator').style.backgroundColor = 'var(--success)';
+            document.querySelector('.status-text').textContent = 'Bot Running';
+            // In a real application, this would start your bot
+        });
+        
+        document.getElementById('stopBtn').addEventListener('click', function() {
+            document.querySelector('.status-indicator').style.backgroundColor = 'var(--danger)';
+            document.querySelector('.status-text').textContent = 'Bot Stopped';
+            // In a real application, this would stop your bot
+        });
+        
+        // Add log entry function (for demonstration)
+        function addLogEntry(type, message) {
+            const logsContainer = document.querySelector('.logs');
+            const now = new Date();
+            const timeString = now.getHours().toString().padStart(2, '0') + ':' + 
+                              now.getMinutes().toString().padStart(2, '0') + ':' + 
+                              now.getSeconds().toString().padStart(2, '0');
+            
+            const logLine = document.createElement('div');
+            logLine.className = 'log-line';
+            
+            const timeSpan = document.createElement('span');
+            timeSpan.className = 'log-time';
+            timeSpan.textContent = timeString;
+            
+            const messageSpan = document.createElement('span');
+            messageSpan.className = `log-${type}`;
+            messageSpan.textContent = message;
+            
+            logLine.appendChild(timeSpan);
+            logLine.appendChild(messageSpan);
+            
+            logsContainer.insertBefore(logLine, logsContainer.firstChild);
+        }
+        
+        // Demo: Add a log entry every few seconds for demonstration
+        setInterval(() => {
+            const types = ['info', 'success', 'error'];
+            const messages = [
+                'Monitoring mempool for large transactions...',
+                'Detected large purchase: 1.8 SOL',
+                'Executing sandwich strategy...',
+                'Front-running buy successful, waiting for price impact...',
+                'Sandwich complete! Profit realized.',
+                'Back-running sell transaction failed: Timeout'
+            ];
+            
+            const randomType = types[Math.floor(Math.random() * types.length)];
+            const randomMessage = messages[Math.floor(Math.random() * messages.length)];
+            
+            // Uncomment to see live log updates:
+            // addLogEntry(randomType, randomMessage);
+        }, 5000);
+    </script>
+</body>
+</html>
